@@ -2,6 +2,7 @@ from cloudant.client import CouchDB as _CouchDB
 from cloudant.database import CouchDatabase as _CouchDatabase
 from cloudant.document import Document
 from cloudant.design_document import DesignDocument
+from .url import URL, make_url
 
 __version__ = '0.1.0'
 
@@ -59,11 +60,11 @@ class CouchDB(object):
     db = None
     uri = None
     
-    def __init__(self, app=None):
+    def __init__(self, app=None, uri=None):
         self.open_connection = None
         self.close_connection = None
         if app is not None:
-            self.init_app(app)
+            self.init_app(app, uri=uri)
             
     def user_open_connection(self, open_connection):
         """Decorator to set a custom user open_connection"""
@@ -76,9 +77,26 @@ class CouchDB(object):
         return close_connection
     
     def init_app(self, app, name=None, uri=None):
-        
+        if uri is None:
+            uri = app.config.get('COUCH_DATABASE_URI', None)
+            
         if uri is not None:
             self.uri = uri
+            url = make_url(uri)
+            couch_uri = url.drivername + "://"
+
+            if url.host is not None:
+                if ":" in url.host:
+                    couch_uri += "[%s]" % url.host
+                else:
+                    couch_uri += url.host
+            if url.port is not None:
+                couch_uri += ":" + str(url.port)
+            app.config['COUCH_URI'] = couch_uri
+            app.config['COUCH_USER'] = url.username
+            app.config['COUCH_PASSWORD'] = url.password
+            app.config['COUCH_DB'] = url.database
+
         elif app.config.get('COUCH_URI') is not None:
             self.uri = app.config.get('COUCH_URI')
         else:
@@ -124,6 +142,7 @@ class CouchDB(object):
     def default_open_connection(self, app):
         self.client = CouchDBClient(app.config.get('COUCH_USER'),app.config.get('COUCH_PASSWORD'), url=app.config.get('COUCH_URI'), connect=True)
         #self.client._DATABASE_CLASS = CouchDatabase
+        
         if app.config.get('COUCH_DB') is not None:
             self.db = self.client.create_database(app.config.get('COUCH_DB'), throw_on_exists=False)
         
