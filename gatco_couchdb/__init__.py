@@ -140,7 +140,7 @@ class CouchDB(object):
         )
         
     def default_open_connection(self, app):
-        self.client = CouchDBClient(app.config.get('COUCH_USER'),app.config.get('COUCH_PASSWORD'), url=app.config.get('COUCH_URI'), connect=True)
+        self.client = CouchDBClient(app.config.get('COUCH_USER'),app.config.get('COUCH_PASSWORD'), url=app.config.get('COUCH_URI'), connect=True, auto_renew=True)
         #self.client._DATABASE_CLASS = CouchDatabase
         
         if app.config.get('COUCH_DB') is not None:
